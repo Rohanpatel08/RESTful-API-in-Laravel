@@ -11,4 +11,4 @@ Route::get('/user', function (Request $request) {
 
 Route::resource('users', UserController::class);
 
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [UserController::class, 'userLogin']);

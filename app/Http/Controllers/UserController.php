@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
 {
@@ -124,5 +125,34 @@ class UserController extends Controller
         $user->delete();
 
         return response()->json('User Deleted Successfully', 204);
+    }
+
+    public function userLogin(Request $request)
+    {
+        try {
+            $request->validate([
+                'userEmail' => 'required | email',
+                'userPassword' => ['required', Password::min(8)->numbers()]
+            ]);
+            $user = User::where("email", $request['userEmail'])->get();
+            // dd($user[0]->roll);
+            if ($user->isNotEmpty()) {
+                if (Hash::check($request['userPassword'], $user[0]->password)) {
+                    // $request->session()->put('user', ['user' => $user[0]->name, 'roll' => $user[0]->roll, 'email' => $user[0]->email]);
+                    return response()->json(['message' => 'user logged in successfully']);
+                    // return redirect('/employee');
+                } else {
+                    // return back()->with('error', 'Wrong password. Enter correct password.');
+                    return response()->json(['error' => 'Wrong password. Enter correct password.']);
+                }
+            } else {
+                // return back()->with('userError', 'This email is not found or might be wrong.');
+                return response()->json(['error' => 'This email is not found or might be wrong.']);
+            }
+        } catch (ValidationException $err) {
+            $error = $err->validator->errors();
+            return response()->json(['error' => $error]);
+            // return back()->withErrors($error)->withInput();
+        }
     }
 }
