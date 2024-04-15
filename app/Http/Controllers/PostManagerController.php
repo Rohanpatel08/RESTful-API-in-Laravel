@@ -11,64 +11,81 @@ use Illuminate\Http\Request;
 
 class PostManagerController extends Controller
 {
-    public function post(Request $request)
+    public function createPost(Request $request)
     {
         $request->validate([
             'username' => 'required | string',
             'post' => 'required'
         ]);
-        // dd($request);
 
-        $user = User::where('username', $request->username)->first();
-        // dd($request->post);
+        try {
 
-        $imageName = time() . '.' . $request->post->extension();
-        // dd($imageName);
-        $request->post->move(public_path('images'), $imageName);
+            $user = User::where('username', $request->username)->first();
 
-        $post = new Post;
-        $post->user_id = $user['id'];
-        $post->post = $imageName;
-        // Post::create([
-        //     'user_id' => $user['id'],
-        //     'post' => $imageName,
-        // ]);
-        $post->save();
+            $imageName = time() . '.' . $request->post->extension();
+            $request->post->move(public_path('images'), $imageName);
 
-        return response()->json([
-            "success" => true,
-            "message" => "successfully post created.",
-            "post" => new PostResource($post)
-        ]);
+            $post = new Post;
+            $post->user_id = $user['id'];
+            $post->post = $imageName;
+            $post->save();
+
+            return response()->json([
+                "success" => true,
+                "message" => "successfully post created.",
+                "post" => new PostResource($post)
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                "message" => "Something went wrong"
+            ]);
+        }
     }
 
     public function getPosts(Request $request)
     {
-        if (!$request->hasHeader('username')) {
-            return  response()->json(['error' => 'Username is required']);
-        }
-        $user = User::where('username', $request->header('username'))->first();
-        $posts = Post::where('user_id', $user['id'])->get();
+        try {
+            if (!$request->hasHeader('username')) {
+                return response()->json(['error' => 'Username is required']);
+            }
+            $user = User::where('username', $request->header('username'))->first();
+            if (!$user) {
+                return response()->json(['error' => 'There is no user with this username']);
+            } else {
+                $posts = Post::where('user_id', $user['id'])->get();
+                if (count($posts) != 0) {
+                    return response()->json([
+                        "user_id" => $user['id'],
+                        "posts" => $posts
+                    ]);
+                } else {
+                    return response()->json(['message' => 'There is no posts posted by this user.']);
 
-        return response()->json(["posts" => $posts]);
+                }
+            }
+
+
+        } catch (Exception $e) {
+            return response()->json([
+                "message" => "Something went wrong"
+            ]);
+        }
     }
 
     public function deletePosts(Request $request)
     {
         if (!$request->hasHeader('username')) {
-            return  response()->json(['error' => 'Username is required']);
+            return response()->json(['error' => 'Username is required']);
         }
         $username = $request->header('username');
-        // dd($username);
         $user = User::where('username', $username)->first();
         $posts = Post::where('user_id', $user['id'])->where('id', $request->header('id'))->first();
-        // dd($posts);
-        if (!$posts) {
+        if (count($posts) == 0) {
             return response()->json(['error' => 'There is no post from this user']);
         }
 
         $posts->delete();
-        return  response()->json([
+        return response()->json([
             "success" => true,
             "message" => "Successfully deleted the post."
         ], 204);

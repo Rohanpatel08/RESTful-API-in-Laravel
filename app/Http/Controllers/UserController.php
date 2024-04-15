@@ -77,7 +77,7 @@ class UserController extends Controller
     public function show(string $id)
     {
         $user = User::findOrFail($id);
-        return response()->json($user);
+        return response()->json(["user" => $user]);
     }
 
     /**
@@ -135,24 +135,18 @@ class UserController extends Controller
                 'userPassword' => ['required', Password::min(8)->numbers()]
             ]);
             $user = User::where("email", $request['userEmail'])->get();
-            // dd($user[0]->roll);
             if ($user->isNotEmpty()) {
                 if (Hash::check($request['userPassword'], $user[0]->password)) {
-                    // $request->session()->put('user', ['user' => $user[0]->name, 'roll' => $user[0]->roll, 'email' => $user[0]->email]);
                     return response()->json(['message' => 'user logged in successfully']);
-                    // return redirect('/employee');
                 } else {
-                    // return back()->with('error', 'Wrong password. Enter correct password.');
                     return response()->json(['error' => 'Wrong password. Enter correct password.']);
                 }
             } else {
-                // return back()->with('userError', 'This email is not found or might be wrong.');
                 return response()->json(['error' => 'This email is not found or might be wrong.']);
             }
         } catch (ValidationException $err) {
             $error = $err->validator->errors();
             return response()->json(['error' => $error]);
-            // return back()->withErrors($error)->withInput();
         }
     }
 }
