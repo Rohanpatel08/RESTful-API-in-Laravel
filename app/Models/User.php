@@ -2,21 +2,25 @@
 
 namespace App\Models;
 
+// use Laravel\Passport\HasApiTokens;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens as SanctumHasApiTokens;
 
 class User extends Authenticatable implements MustVerifyEmail, CanResetPassword
 {
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasFactory, Notifiable, SoftDeletes, SanctumHasApiTokens;
     /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
      */
+
+    protected $primaryKey = 'id';
     protected $fillable = [
         'firstname',
         'lastname',

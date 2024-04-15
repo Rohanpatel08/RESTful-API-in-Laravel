@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Auth\Events\Registered;
+use Symfony\Component\Mime\Email;
 
 class UserController extends Controller
 {
@@ -62,8 +64,16 @@ class UserController extends Controller
             $user->gender = $request['gender'];
             $user->phone_no = $request['phone_no'];
             $user->save();
+
+            $accessToken = $user->createToken($user->username, ['*'])->accessToken;
+            Auth::login($user, true);
+            $email_verification = true;
+            $user->sendEmailVerificationNotification();
+            if ($user->sendEmailVerificationNotification()) {
+                $email_verification = true;
+            }
             $userResponse = new UserResource($user);
-            return response()->json($userResponse, 201);
+            return response()->json(["success" => true, "token_name" => $accessToken->name, "email_verification" => $email_verification, "user" => $userResponse], 201);
         } catch (ValidationException $e) {
             $error = $e->validator->errors();
             // Handle database or other errors
