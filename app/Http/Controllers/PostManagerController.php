@@ -60,16 +60,31 @@ class PostManagerController extends Controller
                     ]);
                 } else {
                     return response()->json(['message' => 'There is no posts posted by this user.']);
-
                 }
             }
-
-
         } catch (Exception $e) {
             return response()->json([
                 "message" => "Something went wrong"
             ]);
         }
+    }
+
+    public function updatePost(Request $request)
+    {
+        if ($request->hasHeader('post_id') && $request->hasHeader('post_id')) {
+            $post = Post::where('id', $request->header('post_id'))->where('user_id', $request->header('user_id'))->first();
+            if (!$post) {
+                return response()->json(['error' => 'No Post found']);
+            }
+            if ($request->header('description')) {
+                $desc = $request->header('description');
+                $post->description =  $desc;
+                $post->update();
+                return  response()->json(['message' => 'Post updated successfully!', 'data' => $post], 201);
+            }
+            return  response()->json(['message' => 'Post did not update!', 'data' => $post], 201);
+        }
+        return  response()->json(['error' => 'Please provide post_id and user_id in header!'], 401);
     }
 
     public function deletePosts(Request $request)

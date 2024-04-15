@@ -18,6 +18,7 @@ Route::post('/login', [UserController::class, 'userLogin']);
 
 Route::post('/post/create', [PostManagerController::class, 'createPost']);
 Route::get('/posts', [PostManagerController::class, 'getPosts']);
+Route::get('/post/update', [PostManagerController::class, 'updatePost']);
 Route::delete('/post/delete', [PostManagerController::class, 'deletePosts']);
 
 Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
