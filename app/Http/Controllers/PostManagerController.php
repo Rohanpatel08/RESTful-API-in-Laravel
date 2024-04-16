@@ -13,12 +13,17 @@ class PostManagerController extends Controller
 {
     public function createPost(Request $request)
     {
-        $request->validate([
-            'username' => 'required | string',
-            'post' => 'required'
-        ]);
-
         try {
+            $request->validate([
+                'username' => 'required | string',
+                'post' => 'required'
+            ]);
+
+            if ($request->description) {
+                $desc = $request->description;
+            } else {
+                $desc = null;
+            }
 
             $user = User::where('username', $request->username)->first();
 
@@ -28,6 +33,7 @@ class PostManagerController extends Controller
             $post = new Post;
             $post->user_id = $user['id'];
             $post->post = $imageName;
+            $post->description = $desc;
             $post->save();
 
             return response()->json([
@@ -52,11 +58,11 @@ class PostManagerController extends Controller
             if (!$user) {
                 return response()->json(['error' => 'There is no user with this username']);
             } else {
-                $posts = Post::where('user_id', $user['id'])->get();
+                $posts = Post::where('user_id', $user['id'])->paginate(5);
                 if (count($posts) != 0) {
                     return response()->json([
                         "user_id" => $user['id'],
-                        "posts" => $posts
+                        "posts" => PostResource::collection($posts)
                     ]);
                 } else {
                     return response()->json(['message' => 'There is no posts posted by this user.']);
@@ -71,20 +77,20 @@ class PostManagerController extends Controller
 
     public function updatePost(Request $request)
     {
-        if ($request->hasHeader('post_id') && $request->hasHeader('post_id')) {
+        if ($request->hasHeader('post_id') && $request->hasHeader('user_id')) {
             $post = Post::where('id', $request->header('post_id'))->where('user_id', $request->header('user_id'))->first();
             if (!$post) {
                 return response()->json(['error' => 'No Post found']);
             }
             if ($request->header('description')) {
                 $desc = $request->header('description');
-                $post->description =  $desc;
+                $post->description = $desc;
                 $post->update();
-                return  response()->json(['message' => 'Post updated successfully!', 'data' => $post], 201);
+                return response()->json(['message' => 'Post updated successfully!', 'data' => $post], 201);
             }
-            return  response()->json(['message' => 'Post did not update!', 'data' => $post], 201);
+            return response()->json(['message' => 'Post did not update!', 'data' => $post], 201);
         }
-        return  response()->json(['error' => 'Please provide post_id and user_id in header!'], 401);
+        return response()->json(['error' => 'Please provide post_id and user_id in header!'], 401);
     }
 
     public function deletePosts(Request $request)
@@ -95,7 +101,8 @@ class PostManagerController extends Controller
         $username = $request->header('username');
         $user = User::where('username', $username)->first();
         $posts = Post::where('user_id', $user['id'])->where('id', $request->header('id'))->first();
-        if (count($posts) == 0) {
+        $postArr = $posts->toArray();
+        if (count($postArr) == 0) {
             return response()->json(['error' => 'There is no post from this user']);
         }
 
@@ -103,6 +110,6 @@ class PostManagerController extends Controller
         return response()->json([
             "success" => true,
             "message" => "Successfully deleted the post."
-        ], 204);
+        ], 201);
     }
 }

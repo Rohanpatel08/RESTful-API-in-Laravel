@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PostManagerController;
+use App\Models\User;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Password;
 use App\Http\Controllers\UserController;
@@ -15,6 +16,7 @@ Route::get('/user', function (Request $request) {
 Route::resource('users', UserController::class);
 
 Route::post('/login', [UserController::class, 'userLogin']);
+Route::post('/logout', [UserController::class, 'logout']);
 
 Route::post('/post/create', [PostManagerController::class, 'createPost']);
 Route::get('/posts', [PostManagerController::class, 'getPosts']);
@@ -27,18 +29,28 @@ Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $requ
     return response()->json(['message' => 'Email verified successfully.']);
 })->middleware(['auth', 'signed'])->name('verification.verify');
 
-Route::get('/profile', function () {
-    Route::post('/email/verification-notification', function (Request $request) {
-        $request->user()->sendEmailVerificationNotification();
+// Route::get('/profile', function () {
+//     Route::post('/email/verification-notification', function (Request $request) {
+//         dd($request);
+//         $request->user()->sendEmailVerificationNotification();
 
-        return response()->json(['message', 'Verification link sent!']);
-    })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
-})->middleware(['auth', 'verified']);
+//         return response()->json(['message', 'Verification link sent!']);
+//     })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
+// })->middleware(['auth', 'verified']);
 
 
 Route::post('/forgot-password', function (Request $request) {
     $request->validate(['email' => 'required|email']);
 
+    $email = User::where('email', $request->email)->first();
+    // dd($email);
+    if ($email == null) {
+        return response()->json([
+            'error' => [
+                'message' => 'This user is not found.'
+            ]
+        ]);
+    }
     $status = Password::sendResetLink(
         $request->only('email')
     );
