@@ -48,7 +48,7 @@ class PostManagerController extends Controller
         }
     }
 
-    public function getPosts(Request $request)
+    public function getPostsByUser(Request $request)
     {
         try {
             if (!$request->hasHeader('username')) {
@@ -72,6 +72,35 @@ class PostManagerController extends Controller
             return response()->json([
                 "message" => "Something went wrong"
             ]);
+        }
+    }
+
+    public function getPosts()
+    {
+        $posts = Post::with('user')->paginate(5);
+        return response()->json([
+            'success' => true,
+            'message' => 'All posts retrieved successfully',
+            'posts' => PostResource::collection($posts),
+        ], 200);
+    }
+
+    public function searchPost(Request $request)
+    {
+        // dd($request);
+        if ($request->hasHeader('username')) {
+            $user = User::where('username', 'like', '%' . $request->header('username') . '%')->first();
+            if (!$user) {
+                return response()->json(['error' => 'User not found'], 404);
+            } else {
+                $posts = Post::where('user_id', $user['id'])->get();
+
+                return  response()->json([
+                    'data' => PostResource::collection($posts)
+                ]);
+            }
+        } else {
+            return response()->json(['error' => 'Search Query required'], 404);
         }
     }
 

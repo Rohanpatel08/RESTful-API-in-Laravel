@@ -19,7 +19,9 @@ Route::post('/login', [UserController::class, 'userLogin']);
 Route::post('/logout', [UserController::class, 'logout']);
 
 Route::post('/post/create', [PostManagerController::class, 'createPost']);
-Route::get('/posts', [PostManagerController::class, 'getPosts']);
+Route::get('/posts', [PostManagerController::class, 'getPostsByUser']);
+Route::get('/post/search', [PostManagerController::class, 'searchPost']);
+Route::get('/all/posts', [PostManagerController::class, 'getPosts']);
 Route::get('/post/update', [PostManagerController::class, 'updatePost']);
 Route::delete('/post/delete', [PostManagerController::class, 'deletePosts']);
 
@@ -29,21 +31,10 @@ Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $requ
     return response()->json(['message' => 'Email verified successfully.']);
 })->middleware(['auth', 'signed'])->name('verification.verify');
 
-// Route::get('/profile', function () {
-//     Route::post('/email/verification-notification', function (Request $request) {
-//         dd($request);
-//         $request->user()->sendEmailVerificationNotification();
-
-//         return response()->json(['message', 'Verification link sent!']);
-//     })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
-// })->middleware(['auth', 'verified']);
-
-
 Route::post('/forgot-password', function (Request $request) {
     $request->validate(['email' => 'required|email']);
 
     $email = User::where('email', $request->email)->first();
-    // dd($email);
     if ($email == null) {
         return response()->json([
             'error' => [
