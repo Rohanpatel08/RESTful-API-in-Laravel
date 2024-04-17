@@ -95,7 +95,7 @@ class PostManagerController extends Controller
             } else {
                 $posts = Post::where('user_id', $user['id'])->get();
 
-                return  response()->json([
+                return response()->json([
                     'data' => PostResource::collection($posts)
                 ]);
             }
@@ -129,8 +129,12 @@ class PostManagerController extends Controller
         }
         $username = $request->header('username');
         $user = User::where('username', $username)->first();
-        $posts = Post::where('user_id', $user['id'])->where('id', $request->header('id'))->first();
-        $postArr = $posts->toArray();
+        $posts = Post::where('id', $request->header('id'))->where('user_id', $user->id)->first();
+        if ($posts != null) {
+            $postArr = $posts->toArray();
+        } else {
+            return response()->json(["success" => false, 'error' => 'No posts found.']);
+        }
         if (count($postArr) == 0) {
             return response()->json(['error' => 'There is no post from this user']);
         }

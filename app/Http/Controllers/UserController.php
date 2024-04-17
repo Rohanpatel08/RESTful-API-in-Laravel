@@ -39,7 +39,7 @@ class UserController extends Controller
                 'email' => 'required|string|email|unique:users,email|max:255',
                 'password' => 'required|string|min:8',
                 'gender' => ['required', Rule::in(['male', 'female'])],
-                'phone_no' => 'required|string|max:10',
+                'phone_no' => 'required|regex:/[0-9]{10}|digits:10',
             ], [
                 'firstname.required' => 'First Name is required',
                 'firstname.string' => 'First Name should not be contain any numbers.',
@@ -51,7 +51,8 @@ class UserController extends Controller
                 'email.unique' => "Email already registered.",
                 'password.required' => 'Password is required.',
                 'gender.required' => 'Gender is required',
-                'phone_no.required' => 'Phone Number is required.'
+                'phone_no.required' => 'Phone Number is required.',
+                'phone_no.digits' => 'Phone Number should be 10 digits long.'
             ]);
 
 
@@ -148,7 +149,6 @@ class UserController extends Controller
             if ($user->isNotEmpty()) {
                 if (Hash::check($request['userPassword'], $user[0]->password)) {
                     auth()->login($user[0]);
-                    dd($user[0]);
                     $token = $user[0]->createToken($user[0]->username . '-AuthToken')->plainTextToken;
                     return response()->json(['message' => 'user logged in successfully', 'attributes' => $token]);
                 } else {
@@ -165,7 +165,6 @@ class UserController extends Controller
 
     public function logout()
     {
-        dd(auth()->user());
         auth()->user()->tokens()->delete();
 
         return response()->json(['message' => 'User logged out.']);
