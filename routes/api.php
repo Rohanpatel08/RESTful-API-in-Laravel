@@ -14,6 +14,10 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::resource('users', UserController::class);
+Route::post('user/followers/create', [UserController::class, 'followers']);
+Route::get('user/followers', [UserController::class, 'getFollowersByUserId']);
+Route::post('user/followings/create', [UserController::class, 'followings']);
+Route::get('user/followings', [UserController::class, 'getFollowingsByUserId']);
 
 Route::post('/login', [UserController::class, 'userLogin']);
 Route::get('/login', [UserController::class, 'login'])->name('login');

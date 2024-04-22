@@ -198,15 +198,80 @@ class UserController extends Controller
                 if (in_array($followerUser->username, $users, true)) {
                     return response()->json(["success" => true, 'message' => 'You already follow this user.']);
                 } else {
+                    //update about followers
                     $userFollowers = $user->followers ? json_decode($user->followers) : [];
                     array_push($userFollowers, $followerUser->username);
                     $user->followers = json_encode($userFollowers);
                     $user->update();
+                    //Update about followings
+                    $userFollowing = $followerUser->followings ? json_decode($followerUser->followings) : [];
+                    array_push($userFollowing, $user->username);
+                    $followerUser->followings = json_encode($userFollowing);
+                    $followerUser->update();
                 }
             } else {
-                return response()->json(["success" => false, 'message' => "can't follow same user"]);
+                return response()->json(["success" => false, 'message' => "can't follow the same user"]);
             }
             return response()->json(["success" => true, 'message' => 'Follower added']);
+        } catch (ValidationException $e) {
+            $error = $e->validator->errors();
+            return response()->json(['error' => $error]);
+        }
+    }
+
+    public function getFollowersByUserId(Request $request)
+    {
+        try {
+            if ($request->hasHeader('username')) {
+                $user = User::where('username', $request->header('username'))->first();
+                if ($user->followers == null) {
+                    return response()->json(["success" => false, "message" => 'User does not have any followers.'], 401);
+                }
+                $followers = json_decode($user->followers);
+                return response()->json(["success" => true, "message" => 'Followers retrieved successfully.', 'Followers' => $followers], 201);
+            } else {
+                return response()->json(['success' => false, 'message' => "User not found"]);
+            }
+        } catch (Exception $e) {
+            $error = $e->getMessage();
+            return response()->json(['error' => $error]);
+        }
+    }
+
+    public function followings(Request $request)
+    {
+        try {
+            $request->validate(
+                [
+                    'username' => 'required|string|max:255',
+                    'username2' => 'required|string|max:255'
+                ],
+                [
+                    'username.required' => "Username is required.",
+                    'username2.required' => "Username of follower is required."
+                ]
+            );
+            $user = User::where('username', $request->username)->first();
+            $followingUser = User::where('username', $request->username2)->first();
+            if (!$user || !$followingUser) {
+                throw new Exception('User not found');
+            }
+            if ($user->username != $followingUser->username) {
+                $users = [];
+                array_push($users, $user->followings);
+                if (in_array($followingUser->username, $users, true)) {
+                    return response()->json(["success" => true, 'message' => 'This user already following you.']);
+                } else {
+                    //update about followings
+                    $userFollowings = $user->followers ? json_decode($user->followers) : [];
+                    array_push($userFollowings, $followingUser->username);
+                    $user->followings = json_encode($userFollowings);
+                    $user->update();
+                }
+            } else {
+                return response()->json(["success" => false, 'message' => "can't follow the same user"]);
+            }
+            return response()->json(["success" => true, 'message' => 'Follwing added']);
         } catch (ValidationException $e) {
             $error = $e->validator->errors();
             return response()->json(['error' => $error]);
