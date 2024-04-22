@@ -14,8 +14,13 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::resource('users', UserController::class);
+Route::post('user/followers/create', [UserController::class, 'followers']);
+Route::get('user/followers', [UserController::class, 'getFollowersByUserId']);
+Route::post('user/followings/create', [UserController::class, 'followings']);
+Route::get('user/followings', [UserController::class, 'getFollowingsByUserId']);
 
 Route::post('/login', [UserController::class, 'userLogin']);
+Route::get('/login', [UserController::class, 'login'])->name('login');
 Route::post('/logout', [UserController::class, 'logout']);
 
 Route::post('/post/create', [PostManagerController::class, 'createPost']);
@@ -25,10 +30,10 @@ Route::get('/all/posts', [PostManagerController::class, 'getPosts']);
 Route::get('/post/update', [PostManagerController::class, 'updatePost']);
 Route::delete('/post/delete', [PostManagerController::class, 'deletePosts']);
 
-Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest  $request) {
     $request->fulfill();
 
-    return response()->json(['message' => 'Email verified successfully.']);
+    return response()->json(["message" => "verified"]);
 })->middleware(['auth', 'signed'])->name('verification.verify');
 
 Route::post('/forgot-password', function (Request $request) {
