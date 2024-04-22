@@ -14,6 +14,7 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::resource('users', UserController::class);
+Route::post('/user/followers', [UserController::class, 'followers']);
 
 Route::post('/login', [UserController::class, 'userLogin']);
 Route::post('/logout', [UserController::class, 'logout']);
@@ -24,6 +25,10 @@ Route::get('/post/search', [PostManagerController::class, 'searchPost']);
 Route::get('/all/posts', [PostManagerController::class, 'getPosts']);
 Route::get('/post/update', [PostManagerController::class, 'updatePost']);
 Route::delete('/post/delete', [PostManagerController::class, 'deletePosts']);
+
+
+
+
 
 Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
     $request->fulfill();

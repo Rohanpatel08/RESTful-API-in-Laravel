@@ -169,4 +169,41 @@ class UserController extends Controller
 
         return response()->json(['message' => 'User logged out.']);
     }
+
+
+    public function followers(Request $request)
+    {
+        try {
+            $request->validate(
+                [
+                    'username' => 'required|string|max:255',
+                    'username2' => 'required|string|max:255'
+                ],
+                [
+                    'username.required' => "Username is required.",
+                    'username2.required' => "Username of follower is required."
+                ]
+            );
+            $user = User::where('username', $request->username)->first();
+            $followerUser = User::where('username', $request->username2)->first();
+            if ($user->username != $followerUser->username) {
+                $users = [];
+                array_push($users, $user->followers);
+                if (in_array($followerUser->username, $users, true)) {
+                    return response()->json(["success" => true, 'message' => 'You already follow this user.']);
+                } else {
+                    $userFollowers = $user->followers ? json_decode($user->followers) : [];
+                    array_push($userFollowers, $followerUser->username);
+                    $user->followers = json_encode($userFollowers);
+                    $user->update();
+                }
+            } else {
+                return response()->json(["success" => false, 'message' => "can't follow same user"]);
+            }
+            return response()->json(["success" => true, 'message' => 'Follower added']);
+        } catch (ValidationException $e) {
+            $error = $e->validator->errors();
+            return response()->json(['error' => $error]);
+        }
+    }
 }
