@@ -21,6 +21,11 @@ class UserController extends Controller
     /**
      * Display a listing of the resource.
      */
+
+    public function login(Request $request)
+    {
+        return response()->json(['messsage' => 'You are logged in'], 201);
+    }
     public function index()
     {
         return User::all();
@@ -39,7 +44,7 @@ class UserController extends Controller
                 'email' => 'required|string|email|unique:users,email|max:255',
                 'password' => 'required|string|min:8',
                 'gender' => ['required', Rule::in(['male', 'female'])],
-                'phone_no' => 'required|regex:/[0-9]{10}|digits:10',
+                'phone_no' => 'required|regex:/[0-9]{10}/|digits:10',
             ], [
                 'firstname.required' => 'First Name is required',
                 'firstname.string' => 'First Name should not be contain any numbers.',
@@ -52,6 +57,7 @@ class UserController extends Controller
                 'password.required' => 'Password is required.',
                 'gender.required' => 'Gender is required',
                 'phone_no.required' => 'Phone Number is required.',
+                'phone_no.regex' => 'Phone Number should contain digits.',
                 'phone_no.digits' => 'Phone Number should be 10 digits long.'
             ]);
 
