@@ -58,7 +58,7 @@ class PostManagerController extends Controller
             if (!$user) {
                 return response()->json(['error' => 'There is no user with this username']);
             } else {
-                $posts = Post::where('user_id', $user['id'])->paginate(5);
+                $posts = Post::where('user_id', $user->id)->paginate(5);
                 if (count($posts) != 0) {
                     return response()->json([
                         "user_id" => $user['id'],
@@ -87,7 +87,6 @@ class PostManagerController extends Controller
 
     public function searchPost(Request $request)
     {
-        // dd($request);
         if ($request->hasHeader('username')) {
             $user = User::where('username', 'like', '%' . $request->header('username') . '%')->first();
             if (!$user) {
