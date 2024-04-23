@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\CommentController;
+use App\Http\Controllers\LikeController;
 use App\Http\Controllers\PostManagerController;
 use App\Http\Controllers\VerificationController;
 use App\Models\User;
@@ -23,6 +25,14 @@ Route::get('user/followings', [UserController::class, 'getFollowingsByUserId']);
 Route::post('/login', [UserController::class, 'userLogin']);
 Route::get('/login', [UserController::class, 'login'])->name('login');
 Route::post('/logout', [UserController::class, 'logout']);
+
+Route::get('posts/comments', [CommentController::class, 'index']);
+Route::get('posts/comments/{comment}', [CommentController::class, 'show']);
+Route::post('posts/{post}/comment', [CommentController::class, 'store']);
+Route::put('posts/comments/{comment}', [CommentController::class, 'update']);
+Route::delete('posts/comments/{comment}', [CommentController::class, 'destroy']);
+
+Route::post('posts/{post}/like', [LikeController::class, 'like']);
 
 Route::middleware(['auth.users'])->group(function () {
     Route::post('/post/create', [PostManagerController::class, 'createPost']);
