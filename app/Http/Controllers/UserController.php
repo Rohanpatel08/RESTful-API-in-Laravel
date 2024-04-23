@@ -9,12 +9,9 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
-use Illuminate\Auth\Events\Registered;
-use Symfony\Component\Mime\Email;
 
 class UserController extends Controller
 {
@@ -28,7 +25,8 @@ class UserController extends Controller
     }
     public function index()
     {
-        return User::all();
+        $users = User::all();
+        return response()->json(['success' => true, 'message' => 'Users retrieved successfully.', 'users' => UserResource::collection($users)]);
     }
 
     /**
@@ -71,16 +69,11 @@ class UserController extends Controller
             $user->gender = $request['gender'];
             $user->phone_no = $request['phone_no'];
             $user->save();
-
             $accessToken = $user->createToken($user->username, ['*'])->accessToken;
             Auth::login($user, true);
-            $email_verification = true;
             $user->sendEmailVerificationNotification();
-            if ($user->sendEmailVerificationNotification()) {
-                $email_verification = true;
-            }
             $userResponse = new UserResource($user);
-            return response()->json(["success" => true, "token_name" => $accessToken->name, "email_verification" => $email_verification, "user" => $userResponse], 201);
+            return response()->json(["success" => true, "token_name" => $accessToken->name, "user" => $userResponse], 201);
         } catch (ValidationException $e) {
             $error = $e->validator->errors();
             // Handle database or other errors
@@ -93,8 +86,12 @@ class UserController extends Controller
      */
     public function show(string $id)
     {
-        $user = User::findOrFail($id);
-        return response()->json(["user" => $user]);
+        $user = User::find($id);
+        // dd($user);
+        if ($user == null) {
+            return response()->json(["error" => 'User not found.']);
+        }
+        return response()->json(["user" => new UserResource($user)]);
     }
 
     /**
@@ -219,6 +216,30 @@ class UserController extends Controller
         }
     }
 
+    public function removeFollowers(Request $request)
+    {
+        try {
+            if ($request->hasHeader('username') && $request->hasHeader('follower')) {
+                $user = User::where('username', $request->header('username'))->first();
+                $followers = count($user->followers) != 0 ? json_decode($user->followers) : 'User have not any followers.';
+                foreach ($followers as $key => $follower) {
+                    if ($follower === $request->header('follower')) {
+                        unset($followers[$key]);
+                    }
+                }
+                $follower_arr = array_values($followers);
+                $user->followers = count($follower_arr) == 0 ? null : $follower_arr;
+                $user->update();
+            } else {
+                throw new Exception('Provide username to delete follower');
+            }
+        } catch (Exception $e) {
+            $error = $e->getMessage();
+            return response()->json(['error' => $error]);
+        }
+        return response()->json(['success' => true, 'message' => 'Follower is removed']);
+
+    }
     public function getFollowersByUserId(Request $request)
     {
         try {
@@ -260,7 +281,7 @@ class UserController extends Controller
                 $users = [];
                 array_push($users, $user->followings);
                 if (in_array($followingUser->username, $users, true)) {
-                    return response()->json(["success" => true, 'message' => 'This user already following you.']);
+                    return response()->json(["success" => true, 'message' => 'This user is already following you.']);
                 } else {
                     //update about followings
                     $userFollowings = $user->followers ? json_decode($user->followers) : [];
@@ -271,9 +292,53 @@ class UserController extends Controller
             } else {
                 return response()->json(["success" => false, 'message' => "can't follow the same user"]);
             }
-            return response()->json(["success" => true, 'message' => 'Follwing added']);
+            return response()->json(["success" => true, 'message' => 'Following added']);
         } catch (ValidationException $e) {
             $error = $e->validator->errors();
+            return response()->json(['error' => $error]);
+        }
+    }
+
+    public function removeFollowings(Request $request)
+    {
+        try {
+            if ($request->hasHeader('username') && $request->hasHeader('following')) {
+                $user = User::where('username', $request->header('username'))->first();
+                $followings = $user->followings ? json_decode($user->followings) : 'User have not any followings.';
+                foreach ($followings as $key => $following) {
+                    if ($following === $request->header('following')) {
+                        unset($followings[$key]);
+                    }
+                }
+                $following_arr = array_values($followings);
+                $user->followings = count($following_arr) == 0 ? null : $following_arr;
+                $user->update();
+            } else {
+                throw new Exception('Provide username to delete follower');
+            }
+        } catch (Exception $e) {
+            $error = $e->getMessage();
+            return response()->json(['error' => $error]);
+        }
+        return response()->json(['success' => true, 'message' => 'Following is removed']);
+
+    }
+
+    public function getFollowingsByUserId(Request $request)
+    {
+        try {
+            if ($request->hasHeader('username')) {
+                $user = User::where('username', $request->header('username'))->first();
+                if ($user->followings == null) {
+                    return response()->json(["success" => false, "message" => 'User does not have any followings.'], 401);
+                }
+                $followings = json_decode($user->followings);
+                return response()->json(["success" => true, "message" => 'Followings retrieved successfully.', 'Followings' => $followings], 201);
+            } else {
+                return response()->json(['success' => false, 'message' => "User not found"]);
+            }
+        } catch (Exception $e) {
+            $error = $e->getMessage();
             return response()->json(['error' => $error]);
         }
     }

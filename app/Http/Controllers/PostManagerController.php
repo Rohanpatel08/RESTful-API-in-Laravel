@@ -8,6 +8,7 @@ use App\Models\Post;
 use App\Models\User;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class PostManagerController extends Controller
 {
@@ -41,9 +42,10 @@ class PostManagerController extends Controller
                 "message" => "successfully post created.",
                 "post" => new PostResource($post)
             ]);
-        } catch (Exception $e) {
+        } catch (ValidationException $e) {
+            $error = $e->validator->errors();
             return response()->json([
-                "message" => "Something went wrong"
+                "error" => $error
             ]);
         }
     }
