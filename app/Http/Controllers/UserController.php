@@ -169,8 +169,7 @@ class UserController extends Controller
     public function logout(Request $request)
     {
         try {
-            // Auth::guard('web')->logout();
-            auth()->guard('web')->logout();
+            Auth::guard('web')->logout();
         } catch (Exception $e) {
             $err = $e->getMessage();
             return response()->json(['error' => $err]);
@@ -243,7 +242,6 @@ class UserController extends Controller
             return response()->json(['error' => $error]);
         }
         return response()->json(['success' => true, 'message' => 'Follower is removed']);
-
     }
     public function getFollowersByUserId(Request $request)
     {
@@ -326,7 +324,6 @@ class UserController extends Controller
             return response()->json(['error' => $error]);
         }
         return response()->json(['success' => true, 'message' => 'Following is removed']);
-
     }
 
     public function getFollowingsByUserId(Request $request)
