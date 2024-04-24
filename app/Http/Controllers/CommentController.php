@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\CommentResource;
 use App\Models\Comment;
 use App\Models\Post;
 use Illuminate\Http\Request;
@@ -18,7 +19,10 @@ class CommentController extends Controller
 
     public function show(Comment $comment)
     {
-        return response()->json($comment);
+        $post_id = $comment->post_id;
+        $comments = Comment::where('post_id', $post_id)->get();
+        $comments = CommentResource::collection($comments);
+        return response()->json(['comments' => $comments]);
     }
 
     public function store(Post $post, Request $request)
@@ -31,7 +35,7 @@ class CommentController extends Controller
         // Create comment
         $comment = new Comment();
         $comment->post_id = $post->id;
-        $comment->user_id = $post->user_id; // Assuming authentication is implemented
+        $comment->user_id = $post->user_id;
         $comment->content = $request->input('content');
         $comment->save();
 

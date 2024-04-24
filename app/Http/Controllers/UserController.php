@@ -151,8 +151,8 @@ class UserController extends Controller
             $user = User::where("email", $request['userEmail'])->get();
             if ($user->isNotEmpty()) {
                 if (Hash::check($request['userPassword'], $user[0]->password)) {
-                    auth()->login($user[0]);
                     $token = $user[0]->createToken($user[0]->username . '-AuthToken')->plainTextToken;
+                    Auth::login($user[0], true);
                     return response()->json(['message' => 'user logged in successfully', 'attributes' => $token]);
                 } else {
                     return response()->json(['error' => 'Wrong password. Enter correct password.']);
@@ -166,10 +166,15 @@ class UserController extends Controller
         }
     }
 
-    public function logout()
+    public function logout(Request $request)
     {
-        auth()->user()->tokens()->delete();
-
+        try {
+            // Auth::guard('web')->logout();
+            auth()->guard('web')->logout();
+        } catch (Exception $e) {
+            $err = $e->getMessage();
+            return response()->json(['error' => $err]);
+        }
         return response()->json(['message' => 'User logged out.']);
     }
 
