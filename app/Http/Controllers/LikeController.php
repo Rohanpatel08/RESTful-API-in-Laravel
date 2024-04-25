@@ -14,7 +14,7 @@ class LikeController extends Controller
     {
         $like_user = User::where('username', $request->username)->first();
         if (!$like_user) {
-            return response()->json(['message' => 'Please Login to like posts.']);
+            return response()->json(['message' => 'Username is required to like posts.']);
         }
         // Check if the user has already liked the post
         $existingLike = Like::where('post_id', $post->id)

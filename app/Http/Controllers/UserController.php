@@ -51,7 +51,7 @@ class UserController extends Controller
                 'username.required' => "Username is required.",
                 'username.unique' => "Username already exists.",
                 'email.required' => "Email is required.",
-                'email.unique' => "Email already registered.",
+                'email.unique' => "Email is already registered.",
                 'password.required' => 'Password is required.',
                 'gender.required' => 'Gender is required',
                 'phone_no.required' => 'Phone Number is required.',
@@ -87,7 +87,6 @@ class UserController extends Controller
     public function show(string $id)
     {
         $user = User::find($id);
-        // dd($user);
         if ($user == null) {
             return response()->json(["error" => 'User not found.']);
         }
@@ -99,29 +98,39 @@ class UserController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $user = User::findOrFail($id);
+        try {
+            $user = User::findOrFail($id);
+            $request->validate([
+                'firstname' => 'required|string|max:255',
+                'lastname' => 'required|string|max:255',
+                'username' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    Rule::unique('users')->ignore($user->id),
+                ],
+                'email' => [
+                    'required',
+                    'string',
+                    'email',
+                    'max:255',
+                    Rule::unique('users')->ignore($user->id),
+                ],
+                'gender' => ['required', Rule::in(['male', 'female'])],
+                'phone_no' => 'required|string|max:15',
+            ]);
+            $user->firstname = $request->firstname;
+            $user->lastname = $request->lastname;
+            $user->username = $request->username;
+            $user->email = $request->email;
+            $user->gender = $request->gender;
+            $user->phone_no = $request->phone_no;
+            $user->update();
+        } catch (ValidationException $e) {
+            $err = $e->validator->errors();
 
-        $validatedData = $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'username' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('users')->ignore($user->id),
-            ],
-            'email' => [
-                'required',
-                'string',
-                'email',
-                'max:255',
-                Rule::unique('users')->ignore($user->id),
-            ],
-            'gender' => ['required', Rule::in(['male', 'female'])],
-            'phone_no' => 'required|string|max:15',
-        ]);
-
-        $user->update($validatedData);
+            return response()->json(['success' => false, 'error' => $err]);
+        }
 
         return response()->json($user, 200);
     }
@@ -132,9 +141,9 @@ class UserController extends Controller
     public function destroy(string $id)
     {
 
-        $user = User::findOrFail($id);
+        $user = User::find($id);
         if (!$user) {
-            throw new Exception('User not found');
+            return response()->json(['success' => false, 'message' => 'User not found']);
         }
         $user->delete();
 
@@ -148,11 +157,11 @@ class UserController extends Controller
                 'userEmail' => 'required | email',
                 'userPassword' => ['required', Password::min(8)->numbers()]
             ]);
-            $user = User::where("email", $request['userEmail'])->get();
-            if ($user->isNotEmpty()) {
-                if (Hash::check($request['userPassword'], $user[0]->password)) {
-                    $token = $user[0]->createToken($user[0]->username . '-AuthToken')->plainTextToken;
-                    Auth::login($user[0], true);
+            $user = User::where("email", $request['userEmail'])->first();
+            if ($user) {
+                if (Hash::check($request['userPassword'], $user->password)) {
+                    $token = $user->createToken($user->username . '-AuthToken')->plainTextToken;
+                    Auth::login($user, true);
                     return response()->json(['message' => 'user logged in successfully', 'attributes' => $token]);
                 } else {
                     return response()->json(['error' => 'Wrong password. Enter correct password.']);
@@ -169,7 +178,8 @@ class UserController extends Controller
     public function logout(Request $request)
     {
         try {
-            Auth::guard('web')->logout();
+            Auth::logout();
+            // auth()->user()->tokens()->delete();
         } catch (Exception $e) {
             $err = $e->getMessage();
             return response()->json(['error' => $err]);
@@ -184,15 +194,15 @@ class UserController extends Controller
             $request->validate(
                 [
                     'username' => 'required|string|max:255',
-                    'username2' => 'required|string|max:255'
+                    'follower' => 'required|string|max:255'
                 ],
                 [
                     'username.required' => "Username is required.",
-                    'username2.required' => "Username of follower is required."
+                    'follower.required' => "Username of follower is required."
                 ]
             );
             $user = User::where('username', $request->username)->first();
-            $followerUser = User::where('username', $request->username2)->first();
+            $followerUser = User::where('username', $request->follower)->first();
             if ($user->username != $followerUser->username) {
                 $users = [];
                 array_push($users, $user->followers);
@@ -225,7 +235,7 @@ class UserController extends Controller
         try {
             if ($request->hasHeader('username') && $request->hasHeader('follower')) {
                 $user = User::where('username', $request->header('username'))->first();
-                $followers = count($user->followers) != 0 ? json_decode($user->followers) : 'User have not any followers.';
+                $followers = !empty($user->followers) ? json_decode($user->followers) : 'User have not any followers.';
                 foreach ($followers as $key => $follower) {
                     if ($follower === $request->header('follower')) {
                         unset($followers[$key]);
@@ -268,15 +278,15 @@ class UserController extends Controller
             $request->validate(
                 [
                     'username' => 'required|string|max:255',
-                    'username2' => 'required|string|max:255'
+                    'following' => 'required|string|max:255'
                 ],
                 [
                     'username.required' => "Username is required.",
-                    'username2.required' => "Username of follower is required."
+                    'following.required' => "Username of following is required."
                 ]
             );
             $user = User::where('username', $request->username)->first();
-            $followingUser = User::where('username', $request->username2)->first();
+            $followingUser = User::where('username', $request->following)->first();
             if (!$user || !$followingUser) {
                 throw new Exception('User not found');
             }
@@ -287,7 +297,7 @@ class UserController extends Controller
                     return response()->json(["success" => true, 'message' => 'This user is already following you.']);
                 } else {
                     //update about followings
-                    $userFollowings = $user->followers ? json_decode($user->followers) : [];
+                    $userFollowings = $user->followings ? json_decode($user->followings) : [];
                     array_push($userFollowings, $followingUser->username);
                     $user->followings = json_encode($userFollowings);
                     $user->update();
@@ -317,7 +327,7 @@ class UserController extends Controller
                 $user->followings = count($following_arr) == 0 ? null : $following_arr;
                 $user->update();
             } else {
-                throw new Exception('Provide username to delete follower');
+                throw new Exception('Provide username and following to delete follower');
             }
         } catch (Exception $e) {
             $error = $e->getMessage();

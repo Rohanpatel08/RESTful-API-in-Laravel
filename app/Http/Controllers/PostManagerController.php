@@ -89,13 +89,18 @@ class PostManagerController extends Controller
 
     public function searchPost(Request $request)
     {
+        $posts = [];
         if ($request->hasHeader('username')) {
-            $user = User::where('username', 'like', '%' . $request->header('username') . '%')->first();
-            if (!$user) {
+            $user = User::where('username', 'like', '%' . $request->header('username') . '%')->get();
+            if ($user == null) {
                 return response()->json(['error' => 'User not found'], 404);
             } else {
-                $posts = Post::where('user_id', $user['id'])->get();
-
+                foreach ($user as $key => $value) {
+                    $post = Post::where('user_id', $value['id'])->first();
+                    // dd($post);
+                    array_push($posts, $post);
+                }
+                // dd($posts);
                 return response()->json([
                     'data' => PostResource::collection($posts)
                 ]);
@@ -107,8 +112,9 @@ class PostManagerController extends Controller
 
     public function updatePost(Request $request)
     {
-        if ($request->hasHeader('post_id') && $request->hasHeader('user_id')) {
-            $post = Post::where('id', $request->header('post_id'))->where('user_id', $request->header('user_id'))->first();
+        if ($request->hasHeader('post_id') && $request->hasHeader('username')) {
+            $user = User::where('username', $request->header('username'))->first();
+            $post = Post::where('id', $request->header('post_id'))->where('user_id', $user->id)->first();
             if (!$post) {
                 return response()->json(['error' => 'No Post found']);
             }
@@ -120,17 +126,17 @@ class PostManagerController extends Controller
             }
             return response()->json(['message' => 'Post did not update!', 'data' => $post], 201);
         }
-        return response()->json(['error' => 'Please provide post_id and user_id in header!'], 401);
+        return response()->json(['error' => 'Please provide post_id and username in header!'], 401);
     }
 
     public function deletePosts(Request $request)
     {
         if (!$request->hasHeader('username')) {
-            return response()->json(['error' => 'Username is required']);
+            return response()->json(['error' => 'Username and post id is required']);
         }
         $username = $request->header('username');
         $user = User::where('username', $username)->first();
-        $posts = Post::where('id', $request->header('id'))->where('user_id', $user->id)->first();
+        $posts = Post::where('id', $request->header('post_id'))->where('user_id', $user->id)->first();
         if ($posts != null) {
             $postArr = $posts->toArray();
         } else {

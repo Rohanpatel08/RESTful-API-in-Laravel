@@ -13,12 +13,10 @@ class AuthController extends Controller
     {
         try {
 
-            // dd($request);
             $credentials = $request->validate([
                 'email' => 'required|email',
                 'password' => 'required',
             ]);
-            // dd($credentials);
             if (Auth::attempt($credentials)) {
                 $request->session()->regenerate();
                 return response()->json(['message' => 'Authenticated successfully'], 200);

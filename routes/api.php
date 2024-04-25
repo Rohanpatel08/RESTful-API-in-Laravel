@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Password;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Validation\ValidationException;
 
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
@@ -26,10 +27,7 @@ Route::post('/login', [UserController::class, 'userLogin']);
 Route::post('/logout', [UserController::class, 'logout']);
 
 
-Route::get('posts/comments/{comment}', [CommentController::class, 'show']);
-Route::post('posts/{post}/comment', [CommentController::class, 'store']);
-Route::put('posts/comments/{comment}', [CommentController::class, 'update']);
-Route::delete('posts/comments/{comment}', [CommentController::class, 'destroy']);
+
 
 Route::post('posts/{post}/like', [LikeController::class, 'like']);
 
@@ -47,22 +45,35 @@ Route::middleware(['auth.users'])->group(function () {
     Route::get('posts/comments', [CommentController::class, 'index']);
     Route::get('user/followers', [UserController::class, 'getFollowersByUserId']);
     Route::get('user/followings', [UserController::class, 'getFollowingsByUserId']);
+
+    Route::post('posts/{post}/comment', [CommentController::class, 'store']);
+    Route::delete('posts/comments/{comment}', [CommentController::class, 'destroy']);
+    Route::get('posts/comments/{comment}', [CommentController::class, 'show']);
+    Route::put('posts/comments/{comment}', [CommentController::class, 'update']);
 });
 
 Route::post('/forgot-password', function (Request $request) {
-    $request->validate(['email' => 'required|email']);
-
-    $email = User::where('email', $request->email)->first();
-    if ($email == null) {
-        return response()->json([
-            'error' => [
-                'message' => 'This user is not found.'
-            ]
+    try {
+        $request->validate(['email' => 'required|email'], [
+            'email.required' => 'User email is required',
+            'email.email' => 'User email should be in email format'
         ]);
+
+        $email = User::where('email', $request->email)->first();
+        if ($email == null) {
+            return response()->json([
+                'error' => [
+                    'message' => 'This user is not found.'
+                ]
+            ]);
+        }
+        $status = Password::sendResetLink(
+            $request->only('email')
+        );
+    } catch (ValidationException $e) {
+        $err = $e->validator->errors();
+        return response()->json(['error' => $err]);
     }
-    $status = Password::sendResetLink(
-        $request->only('email')
-    );
 
     return $status === Password::RESET_LINK_SENT
         ? response()->json(['status' => __($status)])

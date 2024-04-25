@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\CommentResource;
 use App\Models\Comment;
 use App\Models\Post;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -19,9 +20,14 @@ class CommentController extends Controller
 
     public function show(Comment $comment)
     {
-        $post_id = $comment->post_id;
-        $comments = Comment::where('post_id', $post_id)->get();
-        $comments = CommentResource::collection($comments);
+        try {
+            $post_id = $comment->post_id;
+            $comments = Comment::where('post_id', $post_id)->get();
+            $comments = CommentResource::collection($comments);
+        } catch (Exception $e) {
+            $err = $e->getMessage();
+            return response()->json(['error' => $err]);
+        }
         return response()->json(['comments' => $comments]);
     }
 
@@ -60,7 +66,16 @@ class CommentController extends Controller
 
     public function destroy(Comment $comment)
     {
-        $comment->delete();
+        try {
+            if ($comment) {
+                $comment->delete();
+            } else {
+                return response()->json(['message' => 'Comment not found.']);
+            }
+        } catch (Exception $e) {
+            $err = $e->getMessage();
+            return response()->json(['message' => $err]);
+        }
 
         return response()->json(['message' => 'Comment deleted successfully']);
     }
